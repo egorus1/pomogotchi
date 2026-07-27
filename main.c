@@ -73,9 +73,11 @@ bool timer_expired(uint32_t *t, uint32_t prd, uint32_t now) {
   *t = (now - *t) > prd ? now + prd : *t + prd;
   return true;
 }
-
+/*
+ * SysTick is running
+ */
 int main(void) {
-  uint16_t led = PIN('A', 5); // Pin A5
+  uint16_t led = PIN('A', 1); // Pin A5
   uint16_t but1 = PIN('A', 0); // Button Listener
   RCC->AHBENR |= BIT(17 + PINBANK(led)); // Enable GPIO clock for Led
   RCC->AHBENR |= BIT(17 + PINBANK(but1)); // Enable Clock for Button
@@ -83,16 +85,30 @@ int main(void) {
   gpio_set_mode(led, GPIO_MODE_OUTPUT); // Set to Output
   gpio_set_mode(but1, GPIO_MODE_INPUT);
   gpio_set_pull_up(but1);
-  // uint32_t timer, period = 500;
-  for (;;) {
-   bool button =  gpio_read(but1);
-   gpio_write(led,button);
+  //  uint32_t timer, period = 100000000000;
+  uint32_t elapsed = 0;
+  uint32_t last = s_ticks;
+  bool running = true;
 
-       // if (timer_expired(&timer, period, s_ticks)) {
-       //  static bool on;
-       // gpio_write(led, on);
-       // on = !on;
-   // }
+  for (;;) {
+    bool button = gpio_read(but1);
+    uint32_t now = s_ticks;
+    uint32_t delta = now - last;
+    last = now;
+
+    if (running) {
+        elapsed += delta;
+    }
+
+    if (elapsed >= 10000) {
+        gpio_write(led, true);
+    }
+
+    if (button) {
+        running = false;
+    } else {
+        running = true;
+    }
   };
   return 0;
 }
