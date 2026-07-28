@@ -4,6 +4,8 @@
 #define PIN(bank, num) ((((bank) - 'A') << 8) | (num))
 #define PINNO(pin) (pin & 255)
 #define PINBANK(pin) (pin >> 8)
+#define MAX_DELAY 0xffffff
+
 
 struct systick {
     volatile uint32_t CSR, RVR, CVR, CALIB;
@@ -49,9 +51,6 @@ static inline bool gpio_read(uint16_t pin) {
   return result;
 }
 
-static inline void spin(volatile uint32_t count) {
-    while(count--) (void) 0;
-}
 
 static inline void systick_init(uint32_t ticks) {
     if ((ticks - 1) > 0xffffff) return;
@@ -62,17 +61,16 @@ static inline void systick_init(uint32_t ticks) {
 
 static volatile uint32_t s_ticks;
 void SysTick_Handler(void) { s_ticks++; }
-// t: expiration time, prd: period, now: current time. Return true if expired.
-bool timer_expired(uint32_t *t, uint32_t prd, uint32_t now) {
-  if (now + prd < *t)
-    *t = 0;
-  if (*t == 0)
-    *t = now + prd;
-  if (*t > now)
-    return false;
-  *t = (now - *t) > prd ? now + prd : *t + prd;
-  return true;
+
+static inline void delay(uint32_t delay) {
+    uint32_t tickstart = s_ticks;
+    uint32_t wait = delay;
+    if (wait < MAX_DELAY) {
+        wait += 1;
+    }
+    while((s_ticks - tickstart) < wait){}
 }
+
 /*
  * SysTick is running
  */
@@ -85,7 +83,6 @@ int main(void) {
   gpio_set_mode(led, GPIO_MODE_OUTPUT); // Set to Output
   gpio_set_mode(but1, GPIO_MODE_INPUT);
   gpio_set_pull_up(but1);
-  //  uint32_t timer, period = 100000000000;
   uint32_t elapsed = 0;
   uint32_t last = s_ticks;
   bool running = true;
@@ -108,7 +105,6 @@ int main(void) {
         running = false;
     } else {
         running = true;
-    }
   };
   return 0;
 }
