@@ -71,6 +71,18 @@ static inline void delay(uint32_t delay) {
     while((s_ticks - tickstart) < wait){}
 }
 
+static inline uint8_t isButtonPressed(uint16_t pin) {
+  uint8_t hasButtonPressed = 0;
+  if (!gpio_read(pin)) {
+    delay(50);
+    if (!gpio_read(pin)) {
+        hasButtonPressed = 1;
+    }
+  }
+
+  return hasButtonPressed;
+}
+
 /*
  * SysTick is running
  */
@@ -83,30 +95,40 @@ int main(void) {
   gpio_set_mode(led, GPIO_MODE_OUTPUT); // Set to Output
   gpio_set_mode(but1, GPIO_MODE_INPUT);
   gpio_set_pull_up(but1);
-  uint32_t elapsed = 0;
-  uint32_t last = s_ticks;
-  bool running = true;
-
+  //uint32_t elapsed = 0;
+  //uint32_t last = s_ticks;
+  //bool running = true;
+  int lastButtonState = 0;
+  bool ledOn = false;
   for (;;) {
-    bool button = gpio_read(but1);
-    uint32_t now = s_ticks;
-    uint32_t delta = now - last;
-    last = now;
+    /*
+  bool button = gpio_read(but1);
+  uint32_t now = s_ticks;
+  uint32_t delta = now - last;
+  last = now;
 
-    if (running) {
-        elapsed += delta;
-    }
+  if (running) {
+      elapsed += delta;
+  }
 
-    if (elapsed >= 10000) {
-        gpio_write(led, true);
-    }
+  if (elapsed >= 10000) {
+      gpio_write(led, true);
+  }
 
-    if (button) {
-        running = false;
-    } else {
-        running = true;
+  if (button) {
+      running = false;
+  } else {
+      running = true;
   };
-  return 0;
+  */
+    int buttonState = isButtonPressed(but1);
+
+    if (buttonState != lastButtonState && buttonState == 1) {
+        ledOn = !ledOn;
+        gpio_write(led, ledOn);
+    }
+    lastButtonState = buttonState;
+  }
 }
 
 
